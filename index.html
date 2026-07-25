@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiGeRU - Sistema de Gestión de Residuos Urbanos</title>
+    <link rel="stylesheet" href="css/landing.css?v=2">
+    <link rel="stylesheet" href="css/leaflet.css">
+</head>
+<body>
+
+    <!-- NAV -->
+    <nav class="navbar">
+        <a href="#" class="logo">
+            <div class="logo-icon">S</div>
+            <span>Sistema de Gestión de Residuos Urbanos</span>
+        </a>
+        <div class="nav-links">
+            <a href="#mapa">Mapa</a>
+            <a href="#como-funciona">Cómo funciona</a>
+            <a href="#incidencias">Informar incidencia</a>
+            <a href="/sigeru/frontend-backoffice/login.html" class="btn-login">Ingreso funcionarios</a>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <div class="hero-fullwidth">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-tag-light">Residuos urbanos, mejor gestionados</div>
+            <h1>Una ciudad más limpia empieza con mejor información.</h1>
+            <p>Sistema de Gestión de Residuos Urbanos conecta la gestión de contenedores, camiones, rutas e incidencias para que cada parte del servicio pueda actuar a tiempo.</p>
+            <div class="hero-buttons">
+                <a href="#mapa" class="btn btn-primary">Ver mapa de recolección →</a>
+                <a href="#incidencias" class="btn btn-outline-light">Informar una incidencia</a>
+            </div>
+            <p class="hero-note-light"><strong>¿Sos funcionario?</strong> El administrador habilita tu cuenta para ingresar al sistema interno.</p>
+        </div>
+    </div>
+
+    <!-- FEATURES -->
+    <section id="plataforma">
+        <div class="section-center">
+            <div class="section-tag">Una plataforma común</div>
+            <h2>La información se convierte en acción.</h2>
+            <p class="section-desc">El público consulta e informa. Los funcionarios gestionan. El administrador controla los accesos y la operación.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🗺️</div>
+                <h3>Mapa público</h3>
+                <p>Consultá rutas simuladas, camiones, contenedores e incidencias visibles de la zona.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚠️</div>
+                <h3>Incidencias sin registro</h3>
+                <p>Informá un desborde, rotura o falta de recolección sin crear una cuenta de vecino.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚙️</div>
+                <h3>Gestión interna</h3>
+                <p>Los funcionarios trabajan con camiones, contenedores, rutas y tareas asignadas desde un panel protegido.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🚛</div>
+                <h3>Flota de camiones</h3>
+                <p>Registro completo de vehículos con matrícula, modelo, estado y tipo de residuo asignado.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📦</div>
+                <h3>Red de contenedores</h3>
+                <p>Control de ubicación, zona, estado y tipo de residuo de cada contenedor en la ciudad.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">👥</div>
+                <h3>Roles y permisos</h3>
+                <p>Administradores, operarios, conductores y peones con accesos diferenciados según su función.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- COMO FUNCIONA -->
+    <section id="como-funciona" style="background: var(--white)">
+        <div class="section-center">
+            <div class="section-tag">¿Cómo funciona?</div>
+            <h2>De la detección a la solución</h2>
+            <p class="section-desc">El sistema conecta a vecinos y funcionarios en un flujo claro de trabajo.</p>
+        </div>
+        <div class="steps-grid">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Detección</h3>
+                <p>Un vecino detecta un problema: contenedor lleno, rotura, falta de recolección.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>Reporte</h3>
+                <p>Completa el formulario de incidencia con ubicación, tipo y descripción del problema.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Gestión</h3>
+                <p>El equipo interno recibe la incidencia, la asigna y coordina la solución.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <h3>Resolución</h3>
+                <p>Se actúa sobre el problema y se actualiza el estado en el sistema.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- RECOLECCION BANNER -->
+    <section class="recoleccion-banner">
+        <img src="img/recoleccion.jpeg" alt="Equipo de recolección de residuos trabajando en Montevideo">
+        <div class="recoleccion-overlay">
+            <h2>Operarios comprometidos con la ciudad</h2>
+            <p>Cada día, equipos de recolección recorren las calles para mantener Montevideo limpia. SiGeRU les da las herramientas para trabajar mejor.</p>
+        </div>
+    </section>
+
+    <!-- MAPA -->
+    <section id="mapa">
+        <div class="section-center">
+            <div class="section-tag">Vista pública</div>
+            <h2>Mapa de recolección</h2>
+            <p class="section-desc">Consultá las rutas, contenedores y puntos de recolección de tu zona.</p>
+        </div>
+        <div class="mapa-wrapper">
+            <div class="mapa-buscar">
+                <input type="text" id="buscar-direccion" placeholder="Buscá tu dirección... Ej: Av. 18 de Julio 1234, Montevideo">
+                <button onclick="buscarDireccion()">Buscar</button>
+            </div>
+            <div class="mapa-leyenda">
+                <span class="leyenda-item"><span class="leyenda-dot" style="background:#1a5c52"></span> Contenedor funcional</span>
+                <span class="leyenda-item"><span class="leyenda-dot" style="background:#e8a838"></span> Contenedor dañado</span>
+                <span class="leyenda-item"><span class="leyenda-dot" style="background:#dc3545"></span> Incidencia</span>
+                <span class="leyenda-item"><span class="leyenda-linea"></span> Ruta activa</span>
+            </div>
+            <div id="mapa-leaflet"></div>
+        </div>
+    </section>
+
+    <!-- INCIDENCIAS -->
+    <section id="incidencias" class="incident-section">
+        <div class="incident-layout">
+            <div class="incident-info">
+                <img src="img/incidencia-reporte.jpeg" alt="Vecino reportando incidencia" class="incident-photo">
+                <div class="incident-info-text">
+                    <div class="section-tag">Participá de la solución</div>
+                    <h2>¿Detectaste un problema?</h2>
+                    <p>Contanos qué ocurre y dónde. Tu reporte recibirá un número de incidencia para que el equipo pueda gestionarlo.</p>
+                    <div class="incident-note">Al enviar se genera un ID de seguimiento.</div>
+                </div>
+            </div>
+            <div class="incident-form">
+                <form id="form-incidencia">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tipo">Tipo de incidencia</label>
+                            <select id="tipo">
+                                <option value="">Seleccionar</option>
+                                <option value="desborde">Desborde</option>
+                                <option value="rotura">Rotura de contenedor</option>
+                                <option value="falta_recoleccion">Falta de recolección</option>
+                                <option value="otro">Otro</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="zona">Zona o barrio</label>
+                            <input type="text" id="zona" placeholder="Ej. Centro">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="ubicacion">Ubicación</label>
+                        <input type="text" id="ubicacion" placeholder="Calle, esquina o referencia">
+                    </div>
+                    <div class="form-group">
+                        <label for="descripcion">Descripción</label>
+                        <textarea id="descripcion" placeholder="¿Qué sucede?"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="imagen">Foto del problema <em style="font-weight:normal;color:#999">(opcional)</em></label>
+                        <input type="file" id="imagen" accept="image/*">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Enviar incidencia</button>
+                </form>
+                <p id="incidencia-resultado" style="margin-top:12px; font-size:14px; color:var(--primary); display:none;"></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ABOUT QUANTUM -->
+    <section class="about-section">
+        <div class="about-content">
+            <div class="about-text">
+                <div class="section-tag">Desarrollado por</div>
+                <h2>Quantum</h2>
+                <p>Somos una empresa de desarrollo de software enfocada en soluciones tecnológicas para la gestión urbana. SiGeRU nace como respuesta a la necesidad de digitalizar y optimizar la gestión de residuos en las ciudades.</p>
+                <p>Nuestro equipo combina conocimiento técnico con comprensión del problema real: calles más limpias, operaciones más eficientes y vecinos que pueden participar activamente del cuidado de su barrio.</p>
+                <div class="about-stats">
+                    <div class="about-stat">
+                        <div class="num">3</div>
+                        <div class="label">APIs integradas</div>
+                    </div>
+                    <div class="about-stat">
+                        <div class="num">4</div>
+                        <div class="label">Roles de usuario</div>
+                    </div>
+                    <div class="about-stat">
+                        <div class="num">5</div>
+                        <div class="label">Módulos del sistema</div>
+                    </div>
+                </div>
+            </div>
+            <div class="about-logo-text">
+                <div class="about-logo-letter">Q</div>
+                <div class="about-logo-name">Quantum</div>
+                <div class="about-logo-tagline">Desarrollo de Software</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-logo">
+                <span style="font-size:20px; font-weight:700; color:var(--white);">Quantum</span>
+            </div>
+            <div class="footer-text">
+                <p>SiGeRU — Sistema de Gestión de Residuos Urbanos © 2026</p>
+                <p>Proyecto ESI — Escuela Superior de Informática</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/leaflet.js"></script>
+    <script src="js/landing.js?v=2"></script>
+    <script src="js/mapa.js?v=2"></script>
+</body>
+</html>
