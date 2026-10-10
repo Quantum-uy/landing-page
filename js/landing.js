@@ -1,4 +1,4 @@
-const API_GESTION = 'http://localhost/sigeru/api-gestion';
+const API_GESTION = '/sigeru/api-gestion';
 
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {

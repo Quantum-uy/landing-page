@@ -1,4 +1,4 @@
-const API_GESTION_MAPA = 'http://localhost/sigeru/api-gestion';
+const API_GESTION_MAPA = '/sigeru/api-gestion';
 
 // Coordenadas aproximadas por zona en Montevideo
 const coordenadasPorZona = {
