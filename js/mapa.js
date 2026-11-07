@@ -16,13 +16,40 @@ const coordenadasPorZona = {
     'Malvín':         [-34.9001, -56.1302],
 };
 
-function obtenerCoordenadas(zona, index) {
+function coordsFallback(zona, index) {
     const base = coordenadasPorZona[zona] || [-34.9011, -56.1645];
     const offset = 0.0025;
     return [
         base[0] + (Math.sin(index * 2.3) * offset),
         base[1] + (Math.cos(index * 1.7) * offset)
     ];
+}
+
+const geoCache = {};
+async function geocodificar(direccion, zona, idx) {
+    if (!direccion) return coordsFallback(zona, idx);
+    if (geoCache[direccion]) return geoCache[direccion];
+    try {
+        const q = direccion + ', Montevideo, Uruguay';
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=uy&limit=1`);
+        const d = await r.json();
+        if (d.length) {
+            const c = [parseFloat(d[0].lat), parseFloat(d[0].lon)];
+            geoCache[direccion] = c;
+            return c;
+        }
+    } catch(e) { console.warn('Geocoding falló para:', direccion); }
+    const fb = coordsFallback(zona, idx);
+    geoCache[direccion] = fb;
+    return fb;
+}
+
+async function geocodificarTodos(items) {
+    const direcciones = [...new Set(items.map(i => i.ubicacion).filter(Boolean))];
+    for (let i = 0; i < direcciones.length; i++) {
+        await geocodificar(direcciones[i], null, i);
+        if (i < direcciones.length - 1) await new Promise(r => setTimeout(r, 300));
+    }
 }
 
 function crearIconoContenedor(color) {
@@ -106,77 +133,70 @@ async function iniciarMapa() {
 
     mapaGlobal = map;
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
         maxZoom: 19,
     }).addTo(map);
+    tiles.on('tileerror', function() {
+        document.getElementById('mapa-leaflet').insertAdjacentHTML('afterbegin',
+            '<div style="position:absolute;z-index:999;top:10px;left:50%;transform:translateX(-50%);background:#fff3cd;color:#856404;padding:8px 16px;border-radius:6px;font-size:.85rem;box-shadow:0 2px 6px rgba(0,0,0,.15)">Mapa no disponible temporalmente</div>');
+        tiles.off('tileerror');
+    });
 
-    // Cargar rutas establecidas con sus contenedores
     try {
         const res = await fetch(`${API_GESTION_MAPA}/rutas`);
         const rutas = await res.json();
 
-        rutas.forEach(ruta => {
-            if (!ruta.contenedores || ruta.contenedores.length === 0) return;
+        const todosConts = rutas.flatMap(r => (r.contenedores || []).map(c => ({ubicacion: c.ubicacion})));
+        await geocodificarTodos(todosConts);
 
-            // Calcular coordenadas de cada contenedor en la ruta
-            const puntosRuta = ruta.contenedores.map((c, i) =>
-                obtenerCoordenadas(c.zona, c.orden_en_ruta || i)
-            );
+        for (const ruta of rutas) {
+            if (!ruta.contenedores || ruta.contenedores.length === 0) continue;
 
-            // Dibujar polyline de la ruta
-            const polyline = L.polyline(puntosRuta, {
-                color: ruta.color || '#1a5c52',
-                weight: 3,
-                opacity: 0.85,
-                dashArray: '7 4',
-            }).addTo(map);
+            const puntosRuta = [];
+            for (let i = 0; i < ruta.contenedores.length; i++) {
+                const c = ruta.contenedores[i];
+                puntosRuta.push(await geocodificar(c.ubicacion, c.zona, c.orden_en_ruta || i));
+            }
 
-            polyline.bindPopup(`
-                <strong>${ruta.nombre}</strong><br>
-                <em>${ruta.zona}</em><br>
-                ${ruta.contenedores.length} contenedores
-            `);
+            L.polyline(puntosRuta, {
+                color: ruta.color || '#1a5c52', weight: 3, opacity: 0.85, dashArray: '7 4',
+            }).addTo(map).bindPopup(`<strong>${ruta.nombre}</strong><br><em>${ruta.zona}</em><br>${ruta.contenedores.length} contenedores`);
 
-            // Dibujar marcadores de contenedores sobre la ruta
+            if (ruta.centro_destino) {
+                const lastPt = puntosRuta[puntosRuta.length - 1];
+                const centroCoord = await geocodificar(ruta.centro_destino.split(' - ')[1], ruta.zona, 99);
+                L.marker(centroCoord, { icon: L.divIcon({ className:'', iconSize:[20,20], iconAnchor:[10,10], popupAnchor:[0,-12],
+                    html:`<div style="width:20px;height:20px;background:#e8a838;border:2px solid white;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:bold">C</div>` })
+                }).addTo(map).bindPopup(`<strong>Centro destino</strong><br>${ruta.centro_destino}`);
+                L.polyline([lastPt, centroCoord], { color: ruta.color||'#1a5c52', weight:2, opacity:.5, dashArray:'3 6' }).addTo(map);
+            }
+
             ruta.contenedores.forEach((c, i) => {
-                const coords = obtenerCoordenadas(c.zona, c.orden_en_ruta || i);
                 const color = c.estado === 'funcional' ? ruta.color || '#1a5c52'
-                    : c.estado === 'danado' ? '#e8a838'
-                    : '#999';
-
-                L.marker(coords, { icon: crearIconoContenedor(color) })
+                    : c.estado === 'danado' ? '#e8a838' : '#999';
+                const pos = geoCache[c.ubicacion] || coordsFallback(c.zona, c.orden_en_ruta || i);
+                L.marker(pos, { icon: crearIconoContenedor(color) })
                     .addTo(map)
-                    .bindPopup(`
-                        <strong>Contenedor #${c.id_contenedor}</strong><br>
-                        ${c.ubicacion || ''}<br>
-                        <em>${c.zona || ''}</em><br>
-                        Estado: <strong>${c.estado}</strong><br>
-                        Residuo: ${c.tipo_residuo || '-'}<br>
-                        <span style="color:${ruta.color};font-size:12px">● ${ruta.nombre}</span>
-                    `);
+                    .bindPopup(`<strong>Contenedor #${c.id_contenedor}</strong><br>${c.ubicacion || ''}<br><em>${c.zona || ''}</em><br>Estado: <strong>${c.estado}</strong><br>Residuo: ${c.tipo_residuo || '-'}<br><span style="color:${ruta.color};font-size:12px">&bull; ${ruta.nombre}</span>`);
             });
-        });
+        }
     } catch (e) {
         console.warn('No se pudieron cargar rutas:', e);
     }
 
-    // Cargar incidencias abiertas
     try {
         const res = await fetch(`${API_GESTION_MAPA}/incidencias`);
         const incidencias = await res.json();
 
-        incidencias.filter(inc => inc.estado !== 'resuelta').forEach((inc, i) => {
-            const coords = obtenerCoordenadas(inc.zona, i + 50);
-            L.marker(coords, { icon: crearIconoIncidencia() })
+        for (let i = 0; i < incidencias.length; i++) {
+            const inc = incidencias[i];
+            if (inc.estado === 'resuelta') continue;
+            const pos = await geocodificar(inc.ubicacion, inc.zona, i + 50);
+            L.marker(pos, { icon: crearIconoIncidencia() })
                 .addTo(map)
-                .bindPopup(`
-                    <strong>Incidencia INC-${String(inc.id_incidencia).padStart(5,'0')}</strong><br>
-                    Tipo: ${inc.tipo}<br>
-                    ${inc.ubicacion || ''}<br>
-                    Estado: <strong>${inc.estado}</strong>
-                `);
-        });
+                .bindPopup(`<strong>Incidencia INC-${String(inc.id_incidencia).padStart(5,'0')}</strong><br>Tipo: ${inc.tipo}<br>${inc.ubicacion || ''}<br>Estado: <strong>${inc.estado}</strong>`);
+        }
     } catch (e) {
         console.warn('No se pudieron cargar incidencias:', e);
     }
