@@ -25,31 +25,44 @@ function coordsFallback(zona, index) {
     ];
 }
 
-const geoCache = {};
+const coordsDirecciones = {
+    '18 de Julio y Ejido':[-34.9055,-56.1880],
+    '18 de Julio y Yaguaron':[-34.9050,-56.1900],
+    'Av. del Libertador y Palermo':[-34.9020,-56.1754],
+    'Constitucion y Colonia':[-34.9082,-56.1844],
+    'Bv. Artigas y Rivera':[-34.9060,-56.1780],
+    'Av. Brasil y Benito Blanco':[-34.9170,-56.1560],
+    'Rbla. Republica del Peru y Miraflores':[-34.9190,-56.1520],
+    'Rbla. OHiggins y Jose Ellauri':[-34.9230,-56.1600],
+    'Av. Saldanha da Gama y Golfarini':[-34.9130,-56.1430],
+    'Av. Gral. Rivera y Bv. Batlle':[-34.9100,-56.1500],
+    'Av. del Puerto y Rambla':[-34.9060,-56.2110],
+    'Cerrito y Colonia':[-34.9070,-56.2050],
+    'Av. Italia y Bulevar Artigas':[-34.8990,-56.1700],
+    'Bv. Artigas y Tres Cruces':[-34.8994,-56.1697],
+    'Rivera y Paraguay':[-34.8980,-56.1680],
+    'Av. Rivera y Soca':[-34.9100,-56.1650],
+    'Av Buceo y Carrasco':[-34.9001,-56.1302],
+    '18 de Julio y Yi':[-34.9060,-56.1870],
+    'Av. Brasil y Echevarriarza':[-34.9150,-56.1580],
+    'Rivera y Solano Garcia':[-34.9108,-56.1469],
+    'Sarandi y Zabala':[-34.9064,-56.2072],
+    'Bulevar Artigas y Rondeau':[-34.8950,-56.1820],
+};
+
 async function geocodificar(direccion, zona, idx) {
     if (!direccion) return coordsFallback(zona, idx);
-    if (geoCache[direccion]) return geoCache[direccion];
+    if (coordsDirecciones[direccion]) return coordsDirecciones[direccion];
     try {
-        const q = direccion + ', Montevideo, Uruguay';
-        const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=uy&limit=1`);
+        const r = await fetch(API_GESTION_MAPA + '/geocode?q=' + encodeURIComponent(direccion + ', Montevideo, Uruguay'));
         const d = await r.json();
         if (d.length) {
             const c = [parseFloat(d[0].lat), parseFloat(d[0].lon)];
-            geoCache[direccion] = c;
+            coordsDirecciones[direccion] = c;
             return c;
         }
-    } catch(e) { console.warn('Geocoding falló para:', direccion); }
-    const fb = coordsFallback(zona, idx);
-    geoCache[direccion] = fb;
-    return fb;
-}
-
-async function geocodificarTodos(items) {
-    const direcciones = [...new Set(items.map(i => i.ubicacion).filter(Boolean))];
-    for (let i = 0; i < direcciones.length; i++) {
-        await geocodificar(direcciones[i], null, i);
-        if (i < direcciones.length - 1) await new Promise(r => setTimeout(r, 300));
-    }
+    } catch(e) {}
+    return coordsFallback(zona, idx);
 }
 
 function crearIconoContenedor(color) {
@@ -95,9 +108,7 @@ async function buscarDireccion() {
     if (!q || !mapaGlobal) return;
 
     try {
-        const res = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=uy&limit=1`
-        );
+        const res = await fetch(API_GESTION_MAPA + '/geocode?q=' + encodeURIComponent(q));
         const data = await res.json();
 
         if (data.length === 0) {
@@ -147,16 +158,12 @@ async function iniciarMapa() {
         const res = await fetch(`${API_GESTION_MAPA}/rutas`);
         const rutas = await res.json();
 
-        const todosConts = rutas.flatMap(r => (r.contenedores || []).map(c => ({ubicacion: c.ubicacion})));
-        await geocodificarTodos(todosConts);
-
         for (const ruta of rutas) {
             if (!ruta.contenedores || ruta.contenedores.length === 0) continue;
 
             const puntosRuta = [];
-            for (let i = 0; i < ruta.contenedores.length; i++) {
-                const c = ruta.contenedores[i];
-                puntosRuta.push(await geocodificar(c.ubicacion, c.zona, c.orden_en_ruta || i));
+            for (const c of ruta.contenedores) {
+                puntosRuta.push(await geocodificar(c.ubicacion, c.zona, c.orden_en_ruta || 0));
             }
 
             L.polyline(puntosRuta, {
@@ -172,14 +179,14 @@ async function iniciarMapa() {
                 L.polyline([lastPt, centroCoord], { color: ruta.color||'#1a5c52', weight:2, opacity:.5, dashArray:'3 6' }).addTo(map);
             }
 
-            ruta.contenedores.forEach((c, i) => {
+            for (let i = 0; i < ruta.contenedores.length; i++) {
+                const c = ruta.contenedores[i];
                 const color = c.estado === 'funcional' ? ruta.color || '#1a5c52'
                     : c.estado === 'danado' ? '#e8a838' : '#999';
-                const pos = geoCache[c.ubicacion] || coordsFallback(c.zona, c.orden_en_ruta || i);
-                L.marker(pos, { icon: crearIconoContenedor(color) })
+                L.marker(puntosRuta[i], { icon: crearIconoContenedor(color) })
                     .addTo(map)
                     .bindPopup(`<strong>Contenedor #${c.id_contenedor}</strong><br>${c.ubicacion || ''}<br><em>${c.zona || ''}</em><br>Estado: <strong>${c.estado}</strong><br>Residuo: ${c.tipo_residuo || '-'}<br><span style="color:${ruta.color};font-size:12px">&bull; ${ruta.nombre}</span>`);
-            });
+            }
         }
     } catch (e) {
         console.warn('No se pudieron cargar rutas:', e);
@@ -189,9 +196,9 @@ async function iniciarMapa() {
         const res = await fetch(`${API_GESTION_MAPA}/incidencias`);
         const incidencias = await res.json();
 
-        for (let i = 0; i < incidencias.length; i++) {
-            const inc = incidencias[i];
-            if (inc.estado === 'resuelta') continue;
+        const abiertas = incidencias.filter(inc => inc.estado !== 'resuelta');
+        for (let i = 0; i < abiertas.length; i++) {
+            const inc = abiertas[i];
             const pos = await geocodificar(inc.ubicacion, inc.zona, i + 50);
             L.marker(pos, { icon: crearIconoIncidencia() })
                 .addTo(map)
